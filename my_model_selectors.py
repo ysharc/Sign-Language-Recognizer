@@ -76,9 +76,24 @@ class SelectorBIC(ModelSelector):
         """
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection based on BIC scores
-        raise NotImplementedError
+        min_score = float("inf")
+        best_model = None
 
+        for num_states in range(self.min_n_components, self.max_n_components + 1):
+            try:
+                model = self.base_model(num_states)
+                log_likelihood = model.score(self.X, self.lengths)
+                n_features = self.X.shape[1] # no. of features
+                n_parameters = num_states**2 + 2 * n_features * num_states - 1
+                N = self.X.shape[0]
+                bic = -2 * log_likelihood + n_parameters * np.log(N)
+                if bic < min_score:
+                    min_score = bic
+                    best_model = model
+            except:
+                continue
+
+        return best_model
 
 class SelectorDIC(ModelSelector):
     ''' select best model based on Discriminative Information Criterion
@@ -92,9 +107,31 @@ class SelectorDIC(ModelSelector):
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection based on DIC scores
-        raise NotImplementedError
+        max_score = float("-inf")
+        best_model = None
 
+        for num_states in range(self.min_n_components, self.max_n_components + 1):
+            try:
+                model = self.base_model(num_states)
+                word_likelihood = model.score(self.X, self.lengths)
+                tot_anti_likelihood = 0
+                
+                for word in self.words:
+                    if word != self.this_word:
+                        diff_x, diff_lengths = self.hwords[word]
+                        # The average anti likelihood is added finally to the likelihood
+                        # This is the reason why the negative model score is added below.
+                        tot_anti_likelihood += -model.score(diff_x, diff_lengths)
+                avg_anti_likelihood = tot_anti_likelihood / (len(self.words) - 1)
+                dic = word_likelihood + avg_anti_likelihood
+
+                if dic > max_score:
+                    best_model = model
+                    max_score = dic
+            except:
+                pass
+
+        return best_model
 
 class SelectorCV(ModelSelector):
     ''' select best model based on average log Likelihood of cross-validation folds
@@ -104,5 +141,36 @@ class SelectorCV(ModelSelector):
     def select(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-        # TODO implement model selection using CV
-        raise NotImplementedError
+        max_score = float("-inf")
+        best_model = None
+        n_splits = 3
+
+        for num_states in range(self.min_n_components, self.max_n_components + 1):
+            scores = []
+            if len(self.sequences) < n_splits:
+                break
+
+            split_method = KFold(n_splits=n_splits)
+            for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
+                train_data, train_lengths = combine_sequences(cv_train_idx, self.sequences)
+                test_data, test_lengths = combine_sequences(cv_test_idx, self.sequences)
+                try:
+                    model = GaussianHMM(n_components=num_states, covariance_type="diag", n_iter=1000,
+                                random_state=self.random_state, verbose=False).fit(train_data, train_lengths)
+                    log_likelihood = model.score(test_data, test_lengths)
+                    scores.append(log_likelihood)
+                except ValueError:
+                    break
+
+            if scores:
+                avg_log_likelihood = np.mean(scores)
+            else:
+                avg_log_likelihood = float("-inf")
+
+            if avg_log_likelihood > max_score:
+                max_score = avg_log_likelihood
+                best_model = model
+        
+        if not best_model:
+            return self.base_model(self.n_constant)
+        return best_model
