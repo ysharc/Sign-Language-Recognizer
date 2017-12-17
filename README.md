@@ -21,17 +21,13 @@ Notes:
 pip install git+https://github.com/hmmlearn/hmmlearn.git
 ```
 
-### Code
-
-A template notebook is provided as `asl_recognizer.ipynb`. The notebook is a combination tutorial and submission document.  Some of the codebase and some of your implementation will be external to the notebook. For submission, complete the **Submission** sections of each part.  This will include running your implementations in code notebook cells, answering analysis questions, and passing provided unit tests provided in the codebase and called out in the notebook. 
-
 ### Run
 
-In a terminal or command window, navigate to the top-level project directory `AIND_recognizer/` (that contains this README) and run one of the following command:
+In a terminal or command window, navigate to the top-level project directory `Sign-Language-Recognizer/` (that contains this README) and run one of the following command:
 
 `jupyter notebook asl_recognizer.ipynb`
 
-This will open the Jupyter Notebook software and notebook in your browser which is where you will directly edit and run your code. Follow the instructions in the notebook for completing the project.
+This will open the Jupyter Notebook software and notebook in your browser which is where you will directly edit and run your code. Follow the instructions in the notebook for the sign language recognizer.
 
 
 ### Additional Information
